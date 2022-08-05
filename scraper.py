@@ -39,7 +39,6 @@ def ParseWebsite(url, ua):
 def FindSocGholish(scripts):
     potential_sg = []
     for s in scripts:
-        type
         hits = 0
         for i in indicators:
             if type(i) is tuple:
@@ -91,9 +90,9 @@ def main():
     if sg != []:
         stage2 = []
         for e in sg:
-            print("Found potential SocGholish on {}!".format(args.url))
+            print("Found potential SocGholish on {}!".format(e[0][0]))
             print("Potential injection script (matched {:d} out of {:d} indicators):".format(e[1],len(indicators)))
-            print(e[0])
+            print(e[0][1])
             print("")
             stage2.append(urljoin(args.url,Stage2Url(e[0])))
         print("Trying to extract stage 2 urls...")
