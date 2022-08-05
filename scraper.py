@@ -14,11 +14,16 @@ indicators = [
     r"\w{2}\s*=\s*document\.createElement\W*script\W*\s*\w{2}\.type\s*=\s*\W*[a-zA-Z\/]*\W*\s*\w{2}\.async\s*=\s*(?:true|false);\s*\w{2}\.src\s*=\s*\w{2}"
 ]
 
-def ParseWebsite(url, ua):
+def GetWebsite(url, headers):
     try:
-        r = requests.get(url, headers={'User-Agent': ua})
+        r = requests.get(url, headers=headers)
     except:
         print("Cannot connect to {}".format(url))
+        exit()
+    return r 
+
+def ParseWebsite(url, ua):
+    r = GetWebsite(url, headers={'User-Agent': ua})
     soup = BeautifulSoup(r.content, 'html.parser')
     scripts = []
     for s in soup.findAll('script'):
@@ -27,10 +32,7 @@ def ParseWebsite(url, ua):
             scripts.append((url,s.string))
         else:
             src_url = urljoin(url,src)
-            try:
-                src_text = requests.get(src_url, headers={'User-Agent': ua})
-            except:
-                print("Cannot connect to {}".format(url))
+            src_text = GetWebsite(src_url, headers={'User-Agent': ua})
             scripts.append((src_url,src_text.content))
     return scripts
 
@@ -65,9 +67,7 @@ def Stage2Url(script):
         pass
     decoded.append(url[1::2])
     for d in decoded:
-        if "report" in d:
-            return d
-        elif d[0] == "/":
+        if ("report" in d) or (d[0] == "/"):
             return d
 
     return None
@@ -85,18 +85,31 @@ def main():
     else:
         ua = args.user_agent
 
+    print("Scanning website {} in progress...".format(args.url))
     scripts = ParseWebsite(args.url, ua)
     sg = FindSocGholish(scripts)
     if sg != []:
+        stage2 = []
         for e in sg:
             print("Found potential SocGholish on {}!".format(args.url))
             print("Potential injection script (matched {:d} out of {:d} indicators):".format(e[1],len(indicators)))
             print(e[0])
             print("")
-            print("Trying to extract stage 2 url...")
-            print("")
-            print("Potential Stage 2 URLs:")
-            print(urljoin(args.url,Stage2Url(e[0])))
+            stage2.append(urljoin(args.url,Stage2Url(e[0])))
+        print("Trying to extract stage 2 urls...")
+        print("")
+        print("Potential Stage 2 URLs:")
+        for u in stage2:
+            if "report" in u:
+                print(u)
+            else:
+                response = GetWebsite(urljoin(args.url,u),headers={'Host': args.url.split('/')[2], 'User-Agent': ua, 'referer': args.url})
+                s2url = Stage2Url(response.content)
+                if s2url is not None:
+                    print(s2url)
+                
+    else:
+        print("Couldn't find any SocGholish payload :(")
 
 if __name__ == "__main__":
     main()
