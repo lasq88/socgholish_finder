@@ -33,7 +33,10 @@ def ParseWebsite(url, ua):
         else:
             src_url = urljoin(url,src)
             src_text = GetWebsite(src_url, headers={'User-Agent': ua})
-            scripts.append((src_url,src_text.content))
+            if type(src_text.content) == bytes:
+                scripts.append((src_url,src_text.content.decode("UTF-8")))
+            else:
+                scripts.append((src_url,str(src_text.content)))
     return scripts
 
 def FindSocGholish(scripts):
@@ -43,23 +46,23 @@ def FindSocGholish(scripts):
         for i in indicators:
             if type(i) is tuple:
                 for regex in i:
-                    if re.search(regex,str(s),re.I):
+                    if re.search(regex,s[1],re.I):
                         hits = hits + 1
             else:
-                if re.search(i,str(s),re.I):
+                if re.search(i,s[1],re.I):
                     hits = hits + 1
         if hits > 0:
             potential_sg.append((s,hits))
     return potential_sg
 
 def Stage2Url(script):
-    src = re.search(r"\w{2}\.src\s*=\s*\w{2}\(\W*'(.*?)\W*'\)",str(script),re.I)
+    src = re.search(r"\w{2}\.src\s*=\s*\w{2}\(\W*'(.*?)'\W*\)",script[1],re.I)
     url = src.group(1)
     decoded = []
     try:
-        decoded.append(str(base64.b64decode(url)))
+        decoded.append(base64.b64decode(url).decode("UTF-8"))
         try:
-            decoded.append(str(base64.b64decode(decoded[0])))
+            decoded.append(base64.b64decode(decoded[0]).decode("UTF-8"))
         except:
             pass
     except:
@@ -70,7 +73,7 @@ def Stage2Url(script):
             return d
 
     return None
-
+1
 
 
 def main():
