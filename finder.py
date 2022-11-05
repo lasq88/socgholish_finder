@@ -34,8 +34,6 @@ def GetWebsite(url, headers):
                 url2 = "http://"+url
                 r = requests.get(url2, headers=headers)
     except:
-        e = sys.exc_info()[0]
-        print(e)
         print("Cannot connect to {}".format(url))
         r = ""
     return r 
