@@ -140,7 +140,7 @@ def main():
 
     if(args.filename): 
         print("Scanning file: "+ args.filename)
-        with open(args.filename, 'r') as csvFile:
+        with open(args.filename, 'r', encoding='utf-8-sig') as csvFile:
             raw_file = csv.reader(csvFile)
             for row in raw_file:
                 url = str(row[0])
