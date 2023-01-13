@@ -128,7 +128,7 @@ def scan(url,ua):
                 if r.content == b'':
                     hit = True
                     print("Found potential SocGholish on {}!".format(url))
-                    print("Potential injection script (possible false-positive due ot weak indicator): {}".format(script[0]))
+                    print("Potential injection script (possible false-positive due to a weak indicator): {}".format(script[0]))
                     print("")
         if hit == False:
             print("Couldn't find any SocGholish payload :(")
