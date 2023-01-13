@@ -121,7 +121,17 @@ def scan(url,ua):
                     print(s2url)
                 
     else:
-        print("Couldn't find any SocGholish payload :(")
+        hit = False
+        for script in scripts:
+            if re.match(r"[A-Za-z0-9]{32,}", script[0].split("/")[-1]) != None:
+                r = GetWebsite(script[0], headers={'User-Agent': ua})
+                if r.content == b'':
+                    hit = True
+                    print("Found potential SocGholish on {}!".format(url))
+                    print("Potential injection script (possible false-positive due ot weak indicator): {}".format(script[0]))
+                    print("")
+        if hit == False:
+            print("Couldn't find any SocGholish payload :(")
 
 def main():
     parser = argparse.ArgumentParser(description='SocGholish finder')
@@ -145,12 +155,12 @@ def main():
                 scan(url,ua)
 
     if( not args.filename and args.url):
-        print("Scanning url " + args.url)
         scan(args.url,ua)
 
 
-    if( (args.filename == "") & (args.url == "")):
+    if( (args.filename == None) & (args.url == None)):
         print("Must input a URL or CSV file of domains")
+        parser.print_help()
         exit()
 
 
