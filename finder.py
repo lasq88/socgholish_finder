@@ -66,13 +66,19 @@ def FindSocGholish(scripts):
     for s in scripts:
         hits = 0
         for i in indicators:
-            if type(i) is tuple:
-                for regex in i:
-                    if re.search(regex,s[1],re.I):
-                        hits = hits + 1
-            else:
-                if re.search(i,s[1],re.I):
-                    hits = hits + 1
+            try:
+                if s[1] != None:
+                    if type(i) is tuple:
+                        for regex in i:
+                            if re.search(regex,s[1],re.I):
+                                hits = hits + 1
+                    else:
+                        if re.search(i,s[1],re.I):
+                            hits = hits + 1
+            except:
+                print("Error parsing script: {}".format(s[0]))
+                print(s[1])
+                continue
         if hits > 0:
             potential_sg.append((s,hits))
     return potential_sg
