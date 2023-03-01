@@ -9,6 +9,8 @@ import sys
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
+proxies = {}
+ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
 
 indicators = [
     ("V2luZG93cw","VjJsdVpHOTNjdz09",r".W.i.n.d.o.w.s."),
@@ -30,7 +32,6 @@ def GetWebsite(url, headers):
                 print("trying: "+url1)
                 r = requests.get(url1, headers=headers)
             except:
-                print("trying http://"+url)
                 url2 = "http://"+url
                 r = requests.get(url2, headers=headers)
     except:
@@ -38,7 +39,7 @@ def GetWebsite(url, headers):
         r = ""
     return r 
 
-def ParseWebsite(url, ua):
+def ParseWebsite(url):
     scripts = []
     r = GetWebsite(url, headers={'User-Agent': ua})
     if(r == ""):
@@ -65,6 +66,8 @@ def FindSocGholish(scripts):
     potential_sg = []
     for s in scripts:
         hits = 0
+        if "ndsx" in s[1] and "ndsw===undefined" in s[1]:
+            hits = hits + 1
         for i in indicators:
             try:
                 if s[1] != None:
@@ -102,30 +105,53 @@ def Stage2Url(script):
 
     return None
 
-def scan(url,ua):
+def NSDX_Stage2(urls, ref):
+    headers = {"Referer": "/".join(ref.split('/')[:3]), "User-Agent" : ua}
+    for u in urls:
+        url = "http:"+u[1:-1]
+        r = requests.get(url, headers=headers, proxies=proxies)
+        ip = requests.get("https://ifconfig.co/ip", headers=headers, proxies=proxies)
+        if b"ndsx" in r.content:
+            print("Found potential NDSX variant in: {}".format(url))
+            print("Trying to extract stage 2 urls...")
+            print("")
+            if b"new Date().getTime()" in r.content:
+                print("___utma cookie setting script detected in response, this is indicator of filtered IP. Try different proxy / VPN")
+                print(r.content.decode())
+                print("Your IP: {}".format(ip.content.decode()))
+                print()
+            else:
+                print(re.search(r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)", r.content.decode())[0])
+
+def scan(url):
     print("Scanning website {} in progress...".format(url))
-    scripts = ParseWebsite(url, ua)
+    scripts = ParseWebsite(url)
     sg = FindSocGholish(scripts)
     if sg != []:
         stage2 = []
+        urls = set()
         for e in sg:
-            print("Found potential SocGholish on {}!".format(e[0][0]))
-            print("Potential injection script (matched {:d} out of {:d} indicators):".format(e[1],len(indicators)))
-            print(e[0][1])
-            print("")
-            stage2.append(urljoin(url,Stage2Url(e[0])))
-        print("Trying to extract stage 2 urls...")
-        print("")
-        print("Potential Stage 2 URLs:")
-        for u in stage2:
-            if "report" in u:
-                print(u)
+            if "ndsx" in e[0][1]:
+                urls.update(re.findall("'\/\/[^\s]*?'",e[0][1]))
             else:
-                response = GetWebsite(urljoin(url,u),headers={'Host': url.split('/')[2], 'User-Agent': ua, 'referer': url})
-                s2url = Stage2Url(response.content)
-                if s2url is not None:
-                    print(s2url)
-                
+                print("Found potential SocGholish in {}!".format(e[0][0]))
+                print("Potential injection script (matched {:d} out of {:d} indicators):".format(e[1],len(indicators)))
+                print(e[0][1])
+                print("")
+                stage2.append(urljoin(url,Stage2Url(e[0])))
+                print("Trying to extract stage 2 urls...")
+                print("")
+                print("Potential Stage 2 URLs:")
+                for u in stage2:
+                    if "report" in u:
+                        print(u)
+                    else:
+                        response = GetWebsite(urljoin(url,u),headers={'Host': url.split('/')[2], 'User-Agent': ua, 'referer': url})
+                        s2url = Stage2Url(response.content)
+                        if s2url is not None:
+                            print(s2url)
+        if urls != {}:
+            NSDX_Stage2(urls, url)                   
     else:
         hit = False
         for script in scripts:
@@ -144,13 +170,22 @@ def main():
     parser.add_argument("-url", type=str, help="URL to check")
     parser.add_argument("-ua", "--user-agent",type=str, help="Specify User-Agent to use with the request")
     parser.add_argument("-f", "--filename", type=str, help="csv of domains to check")
+    parser.add_argument("-p", "--proxy", type=str, help="Proxy server to use, supported format: http(s)://user:password@proxy.tld")
+    parser.add_argument("-s", "--scripts", action='store_true', help="list all the scripts on the website with their content (useful for debugging or when script doesn't provide correct results)")
     args = parser.parse_args()
 
 
-    if args.user_agent is None:
-        ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36'
-    else:
+    if args.user_agent:
+        global ua
         ua = args.user_agent
+
+    if args.proxy:
+        global proxies
+        proxies = {
+            'http' : args.proxy,
+            'https' : args.proxy
+        }
+
 
     if(args.filename):
         print("Scanning file: "+ args.filename)
@@ -158,10 +193,13 @@ def main():
             raw_file = csv.reader(csvFile)
             for row in raw_file:
                 url = str(row[0])
-                scan(url,ua)
+                scan(url)
 
     if( not args.filename and args.url):
-        scan(args.url,ua)
+        if (args.scripts):
+            print(ParseWebsite(args.url))
+        else:
+            scan(args.url)
 
 
     if( (args.filename == None) & (args.url == None)):
