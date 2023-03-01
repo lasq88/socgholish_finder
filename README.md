@@ -19,4 +19,9 @@ options:
   -s, --scripts         list all the scripts on the website with their content (useful for debugging or when script doesn't provide correct results)
 ```
 
+Standard
 ![Example of usage](screenshot/finder.JPG)
+
+
+NDSX
+![Example of usage NDSX](screenshot/ndsx.png)
