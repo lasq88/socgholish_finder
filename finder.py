@@ -112,7 +112,6 @@ def NSDX_Stage2(urls, ref):
         r = requests.get(url, headers=headers, proxies=proxies)
         ip = requests.get("https://ifconfig.co/ip", headers=headers, proxies=proxies)
         if b"ndsx" in r.content:
-            print("Found potential NDSX variant in: {}".format(url))
             print("Trying to extract stage 2 urls...")
             print("")
             if b"new Date().getTime()" in r.content:
@@ -132,6 +131,7 @@ def scan(url):
         urls = set()
         for e in sg:
             if "ndsx" in e[0][1]:
+                print("Found potential NDSX variant in: {}".format(e[0][0]))
                 urls.update(re.findall("'\/\/[^\s]*?'",e[0][1]))
             else:
                 print("Found potential SocGholish in {}!".format(e[0][0]))
