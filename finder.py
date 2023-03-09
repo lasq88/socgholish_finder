@@ -20,6 +20,9 @@ indicators = [
 
 def GetWebsite(url, headers):
     try:
+        if "javascript;base64," in url:
+            r = base64.b64decode(url.split(",")[1]).decode("UTF-8")
+            return r
         if (("https://" in url) | ("http://" in url)):
             r = requests.get(url, headers=headers)
         else:
@@ -65,6 +68,8 @@ def ParseWebsite(url):
 def FindSocGholish(scripts):
     potential_sg = []
     for s in scripts:
+        if s == None or s[1] == None:
+            continue
         hits = 0
         if "ndsx" in s[1] and "ndsw===undefined" in s[1]:
             hits = hits + 1
